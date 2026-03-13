@@ -1,203 +1,168 @@
-const mineflayer = require('mineflayer')
-const { pathfinder, Movements, goals: { GoalFollow } } = require('mineflayer-pathfinder')
-const express = require('express')
+const mineflayer=require('mineflayer')
+const {pathfinder,Movements,goals:{GoalFollow}}=require('mineflayer-pathfinder')
+const express=require('express')
+const Groq=require('groq-sdk')
 
-const app = express()
-app.get('/', (req, res) => res.send('SOMUTHAI Running'))
+const groq=new Groq({apiKey:process.env.GROQ_KEY})
+
+const app=express()
+app.get('/',(req,res)=>res.send('AI BOT RUNNING'))
 app.listen(3000)
 
-function startBot() {
+function startBot(){
 
-    console.log("Starting SOMUTHAI...")
+console.log("Starting AI Bot...")
 
-    const bot = mineflayer.createBot({
-        host: 'muth.aternos.me',
-        port: 37604,
-        username: 'SOMUTH_AI',
-        version: '1.21.11'
-    })
+const bot=mineflayer.createBot({
+host:'muth.aternos.me',
+port:37604,
+username:'SOMUTH_AI',
+version:'1.21.11'
+})
 
-    bot.loadPlugin(pathfinder)
+bot.loadPlugin(pathfinder)
 
-    let afkLoop
-    let reconnecting = false
+let reconnecting=false
 
-    bot.once('spawn', () => {
+bot.once('spawn',()=>{
 
-        console.log("Joined server")
+console.log("Bot joined")
 
-        const defaultMove = new Movements(bot)
-        bot.pathfinder.setMovements(defaultMove)
+const defaultMove=new Movements(bot)
+bot.pathfinder.setMovements(defaultMove)
 
-        setTimeout(() => {
-            bot.chat('/login 123456')
-        }, 5000)
+setTimeout(()=>bot.chat('/login 123456'),5000)
 
-        superAntiKick(bot)
-        nightMessage(bot)
-        advancementReply(bot)
-        randomRoast(bot)
-        abuseReply(bot)
-        autoEat(bot)
+superAntiKick(bot)
+nightMessage(bot)
+advancementReply(bot)
+randomRoast(bot)
+abuseReply(bot)
+autoEat(bot)
+realAIChat(bot)
 
-    })
+})
 
-    bot.on('chat', (user, msg) => {
+bot.on('chat',(user,msg)=>{
+if(user===bot.username)return
+if(msg==='follow'||msg==='come')follow(user)
+if(msg==='stop'){bot.pathfinder.setGoal(null);bot.clearControlStates()}
+})
 
-        if (user === bot.username) return
+bot.on('death',()=>setTimeout(()=>bot.spawn(),3000))
+bot.on('end',reconnect)
+bot.on('kicked',reconnect)
+bot.on('error',()=>reconnect())
 
-        if (msg === 'follow' || msg === 'come') follow(user)
+function reconnect(){
+if(reconnecting)return
+reconnecting=true
+console.log("Reconnecting in 10s")
+setTimeout(startBot,10000)
+}
 
-        if (msg === 'stop') {
-            bot.pathfinder.setGoal(null)
-            bot.clearControlStates()
-        }
+function follow(name){
+const target=bot.players[name]?.entity
+if(!target)return bot.chat("cant see you")
+bot.pathfinder.setGoal(new GoalFollow(target,2),true)
+}
 
-        if (msg === 'jump') {
-            bot.setControlState('jump', true)
-            setTimeout(() => bot.setControlState('jump', false), 400)
-        }
+}
 
-    })
+function autoEat(bot){
+setInterval(()=>{
+if(bot.food===20)return
+const food=bot.inventory.items().find(i=>i.name.includes('bread')||i.name.includes('beef')||i.name.includes('pork')||i.name.includes('chicken'))
+if(!food)return
+bot.equip(food,'hand').then(()=>bot.consume()).catch(()=>{})
+},15000)
+}
 
-    bot.on('death', () => {
-        console.log("Bot died respawning")
-        setTimeout(() => bot.spawn(), 3000)
-    })
+function superAntiKick(bot){
+setInterval(()=>{
+const m=['forward','back','left','right'][Math.floor(Math.random()*4)]
+bot.setControlState(m,true)
+setTimeout(()=>bot.setControlState(m,false),2000)
+},30000)
 
-    bot.on('end', reconnect)
-    bot.on('kicked', reconnect)
+setInterval(()=>{
+bot.setControlState('jump',true)
+setTimeout(()=>bot.setControlState('jump',false),400)
+},25000)
 
-    bot.on('error', (err) => {
-        console.log("Error:", err.message)
-        reconnect()
-    })
+setInterval(()=>{
+const yaw=Math.random()*Math.PI*2
+const pitch=(Math.random()-0.5)*Math.PI/2
+bot.look(yaw,pitch,true)
+},20000)
+}
 
-    function reconnect() {
-        if (reconnecting) return
-        reconnecting = true
-        clearInterval(afkLoop)
-        console.log("Reconnecting in 10s")
-        setTimeout(startBot, 10000)
-    }
+function nightMessage(bot){
+let said=false
+bot.on('time',()=>{
+if(bot.time.timeOfDay>13000&&bot.time.timeOfDay<23000){
+if(!said){bot.chat("Sota Kya Lawde");said=true}
+}else said=false
+})
+}
 
-    function follow(name) {
-        const target = bot.players[name]?.entity
-        if (!target) return bot.chat("cant see you")
-        bot.chat("following")
-        bot.pathfinder.setGoal(new GoalFollow(target, 2), true)
-    }
+function advancementReply(bot){
+bot.on('messagestr',(m)=>{
+const t=m.toString()
+if(t.includes('advancement')||t.includes('goal')||t.includes('challenge')){
+bot.chat("Mutthi Maarle")
+}
+})
+}
 
-    function autoEat(bot) {
-        setInterval(() => {
-            if (bot.food === 20) return
-            const food = bot.inventory.items().find(i => i.name.includes('bread') || i.name.includes('beef') || i.name.includes('pork') || i.name.includes('chicken'))
-            if (!food) return
-            bot.equip(food, 'hand').then(() => bot.consume()).catch(() => { })
-        }, 15000)
-    }
+function randomRoast(bot){
+const r=["tu dirt bhi nahi tod sakta","tera aim potato","creative me bhi mar gaya","inventory me hawa hai","mining karega ya picnic"]
+setInterval(()=>{
+const p=Object.keys(bot.players).filter(x=>x!==bot.username)
+if(p.length===0)return
+const target=p[Math.floor(Math.random()*p.length)]
+bot.chat(target+" "+r[Math.floor(Math.random()*r.length)])
+},180000)
+}
 
-    function superAntiKick(bot) {
+function abuseReply(bot){
+const abuse=["noob","bot","idiot","chutiya","bsdk","gandu","madarchod"]
+bot.on('chat',(u,m)=>{
+if(u===bot.username)return
+const msg=m.toLowerCase()
+if(msg.includes(bot.username.toLowerCase())&&abuse.some(a=>msg.includes(a))){
+setTimeout(()=>bot.chat("Gand Mara bosdike"),1000)
+}
+})
+}
 
-        setInterval(() => {
-            const moves = ['forward', 'back', 'left', 'right']
-            const m = moves[Math.floor(Math.random() * moves.length)]
-            bot.setControlState(m, true)
-            setTimeout(() => bot.setControlState(m, false), 2000)
-        }, 30000)
+function realAIChat(bot){
 
-        setInterval(() => {
-            bot.setControlState('jump', true)
-            setTimeout(() => bot.setControlState('jump', false), 400)
-        }, 25000)
+bot.on("chat",async(username,message)=>{
 
-        setInterval(() => {
-            bot.setControlState('sneak', true)
-            setTimeout(() => bot.setControlState('sneak', false), 3000)
-        }, 45000)
+if(username===bot.username)return
+if(!message.toLowerCase().includes(bot.username.toLowerCase()))return
 
-        setInterval(() => {
-            const yaw = Math.random() * Math.PI * 2
-            const pitch = (Math.random() - 0.5) * Math.PI / 2
-            bot.look(yaw, pitch, true)
-        }, 20000)
+try{
 
-        setInterval(() => {
-            const msgs = ["hi", "ok", "lol", "nice", "hmm", "brb"]
-            bot.chat(msgs[Math.floor(Math.random() * msgs.length)])
-        }, 120000)
+const completion=await groq.chat.completions.create({
+messages:[
+{role:"system",content:"You are funny toxic minecraft player. Reply short hinglish."},
+{role:"user",content:message}
+],
+model:"llama3-70b-8192"
+})
 
-    }
+let reply=completion.choices[0].message.content
+reply=reply.substring(0,100)
 
-    function nightMessage(bot) {
+bot.chat(username+" "+reply)
 
-        let said = false
+}catch(e){
+bot.chat(username+" lag ho gaya")
+}
 
-        bot.on('time', () => {
-            if (bot.time.timeOfDay > 13000 && bot.time.timeOfDay < 23000) {
-                if (!said) {
-                    bot.chat("Sota Kya Lawde")
-                    said = true
-                }
-            } else {
-                said = false
-            }
-        })
-
-    }
-
-    function advancementReply(bot) {
-
-        bot.on('messagestr', (msg) => {
-            const t = msg.toString()
-            if (t.includes('has made the advancement') ||
-                t.includes('has completed the advancement') ||
-                t.includes('has reached the goal') ||
-                t.includes('has completed the challenge')) {
-                bot.chat("Mutthi Maarle")
-            }
-        })
-
-    }
-
-    function randomRoast(bot) {
-
-        const roasts = [
-            "Tu dirt bhi nahi tod sakta",
-            "Creative me bhi mar gaya tha kya",
-            "Tera aim potato hai",
-            "Zombie bhi tujhe ignore karta",
-            "Inventory me hawa bhari hai",
-            "Mining karega ya picnic",
-            "Diamond dekh shock ho jata",
-            "Bed bhi tujhe respawn nahi chahta"
-        ]
-
-        setInterval(() => {
-            const players = Object.keys(bot.players).filter(p => p !== bot.username)
-            if (players.length === 0) return
-            const target = players[Math.floor(Math.random() * players.length)]
-            const roast = roasts[Math.floor(Math.random() * roasts.length)]
-            bot.chat(target + " " + roast)
-        }, 180000)
-
-    }
-
-    function abuseReply(bot) {
-
-        const abuse = ["noob", "bot", "stupid", "idiot", "chutiya", "madarchod", "bhosdike", "bsdk", "lund", "gandu"]
-
-        bot.on('chat', (username, message) => {
-            if (username === bot.username) return
-            const msg = message.toLowerCase()
-            const targeted = msg.includes(bot.username.toLowerCase())
-            const abused = abuse.some(w => msg.includes(w))
-            if (targeted && abused) {
-                setTimeout(() => bot.chat("Gand Mara bosdike"), 1000)
-            }
-        })
-
-    }
+})
 
 }
 
