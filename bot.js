@@ -1,17 +1,14 @@
 const mineflayer = require('mineflayer')
 const { pathfinder, Movements, goals: { GoalFollow } } = require('mineflayer-pathfinder')
 const express = require('express')
-const Groq = require('groq-sdk')
-
-const groq = new Groq({ apiKey: process.env.GROQ_KEY })
 
 const app = express()
-app.get('/', (req, res) => res.send('SOMUTHAI AI RUNNING'))
+app.get('/', (req, res) => res.send('SOMUTHAI RUNNING'))
 app.listen(3000)
 
 function startBot() {
 
-console.log("Starting AI Bot...")
+console.log("Starting Bot...")
 
 let reconnecting = false
 
@@ -38,7 +35,7 @@ bot.once("spawn", () => {
     }, 12000)
 
     setTimeout(() => {
-        startAllSystems(bot)
+        startSystems(bot)
     }, 20000)
 
 })
@@ -52,6 +49,11 @@ bot.on("chat", (user, msg) => {
     if (msg === "stop") {
         bot.pathfinder.setGoal(null)
         bot.clearControlStates()
+    }
+
+    if (msg === "jump") {
+        bot.setControlState('jump', true)
+        setTimeout(() => bot.setControlState('jump', false), 400)
     }
 
 })
@@ -96,7 +98,7 @@ function follow(bot, name) {
     bot.pathfinder.setGoal(new GoalFollow(target, 2), true)
 }
 
-function startAllSystems(bot) {
+function startSystems(bot) {
 
     superAntiKick(bot)
     nightMessage(bot)
@@ -104,11 +106,11 @@ function startAllSystems(bot) {
     randomRoast(bot)
     abuseReply(bot)
     autoEat(bot)
-    realAIChat(bot)
 
 }
 
 function autoEat(bot) {
+
     setInterval(() => {
 
         if (bot.food === 20) return
@@ -127,6 +129,7 @@ function autoEat(bot) {
             .catch(() => { })
 
     }, 15000)
+
 }
 
 function superAntiKick(bot) {
@@ -223,36 +226,6 @@ function abuseReply(bot) {
 
             setTimeout(() => bot.chat("Gand Mara bosdike"), 1000)
 
-        }
-
-    })
-
-}
-
-function realAIChat(bot) {
-
-    bot.on("chat", async (username, message) => {
-
-        if (username === bot.username) return
-        if (!message.toLowerCase().includes(bot.username.toLowerCase())) return
-
-        try {
-
-            const completion = await groq.chat.completions.create({
-                messages: [
-                    { role: "system", content: "You are funny toxic minecraft player. Reply short hinglish." },
-                    { role: "user", content: message }
-                ],
-                model: "llama3-70b-8192"
-            })
-
-            let reply = completion.choices[0].message.content
-            reply = reply.substring(0, 100)
-
-            bot.chat(username + " " + reply)
-
-        } catch {
-            bot.chat(username + " lag ho gaya")
         }
 
     })
