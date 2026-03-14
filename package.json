@@ -1,14 +1,22 @@
 {
-  "name": "somuthai-ai-bot",
+  "name": "somu-ultra-ai-bot",
   "version": "1.0.0",
+  "description": "Autonomous survival AI minecraft bot with farming mining building",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
+  },
+  "engines": {
+    "node": ">=18 <=20"
   },
   "dependencies": {
     "express": "^4.18.2",
     "mineflayer": "^4.14.0",
     "mineflayer-pathfinder": "^2.4.5",
-    "groq-sdk": "^0.5.0"
+    "mineflayer-collectblock": "^1.6.0",
+    "mineflayer-tool": "^1.0.1",
+    "mineflayer-pvp": "^1.3.2",
+    "mineflayer-armor-manager": "^1.4.0",
+    "vec3": "^0.1.7"
   }
 }
