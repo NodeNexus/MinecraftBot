@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ULTRA AI BOT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d0f0e;--card:#131614;--border:#1e2420;--accent:#39ff8a;--accent2:#00d4ff;
+  --dim:#1e2a24;--text:#d6efe4;--muted:#6b8a78;--danger:#ff4545;--warn:#ffb830;
+  --panel:#0f1210;--radius:8px;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;font-size:14px}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* ── Layout ── */
+.layout{display:grid;grid-template-columns:220px 1fr;min-height:100vh}
+
+/* ── Sidebar ── */
+.sidebar{background:var(--panel);border-right:1px solid var(--border);padding:16px 12px;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto}
+.logo{font-size:16px;font-weight:800;letter-spacing:1px;color:var(--accent);padding:4px 8px 16px;border-bottom:1px solid var(--border);margin-bottom:10px}
+.logo small{color:var(--muted);font-size:10px;font-weight:400;display:block;letter-spacing:2px;margin-top:2px}
+.section-sep{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--border);padding:12px 8px 4px}
+.task-row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:6px;cursor:pointer;transition:background .15s;user-select:none}
+.task-row:hover{background:var(--dim)}
+.task-icon{font-size:13px;width:18px;text-align:center;flex-shrink:0}
+.task-label{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);flex:1}
+.task-row.on .task-label{color:var(--text)}
+.tog{width:28px;height:16px;background:#1a2820;border:1px solid var(--border);border-radius:8px;position:relative;flex-shrink:0;transition:background .2s,border-color .2s}
+.tog.on{background:var(--accent);border-color:var(--accent)}
+.tog::after{content:'';position:absolute;width:10px;height:10px;background:#fff;border-radius:50%;top:2px;left:2px;transition:transform .2s}
+.tog.on::after{transform:translateX(12px)}
+.sidebar-footer{margin-top:auto;padding-top:12px;border-top:1px solid var(--border);font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--muted);padding:12px 8px 0;text-align:center}
+.ws-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--muted);margin-right:5px;vertical-align:middle}
+.ws-dot.live{background:var(--accent)}
+
+/* ── Main ── */
+.main{padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+
+/* ── Status bar ── */
+.statusbar{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 16px;flex-wrap:wrap;gap:8px}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.pulse.online{background:var(--accent);box-shadow:0 0 0 3px rgba(57,255,138,.15);animation:pulse 2s infinite}
+.pulse.connecting,.pulse.reconnecting{background:var(--warn);animation:blink 1s infinite}
+.pulse.server_offline,.pulse.kicked,.pulse.offline{background:var(--danger)}
+.pulse.username_switch{background:var(--accent2);animation:blink .6s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(57,255,138,.15)}50%{box-shadow:0 0 0 6px rgba(57,255,138,.05)}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.status-label{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.status-label.online{color:var(--accent)}
+.status-label.connecting,.status-label.reconnecting{color:var(--warn)}
+.status-label.offline,.status-label.kicked,.status-label.server_offline{color:var(--danger)}
+.status-label.username_switch{color:var(--accent2)}
+.status-server{font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace}
+.status-user{font-size:11px;color:var(--accent2);font-family:'JetBrains Mono',monospace;font-weight:700}
+.status-pos{font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);margin-left:auto}
+
+/* ── Stat cards ── */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px}
+.stat-val{font-size:24px;font-weight:800;font-family:'JetBrains Mono',monospace;line-height:1;color:var(--accent)}
+.stat-val.warn{color:var(--warn)}
+.stat-val.danger{color:var(--danger)}
+.stat-lbl{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:4px}
+.stat-bar{height:3px;background:var(--dim);border-radius:2px;margin-top:8px;overflow:hidden}
+.stat-bar-fill{height:100%;border-radius:2px;background:var(--accent);transition:width .6s}
+.stat-bar-fill.warn{background:var(--warn)}
+.stat-bar-fill.danger{background:var(--danger)}
+
+/* ── Bottom grid ── */
+.bottom{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:10px}
+.panel-title{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding-bottom:8px;border-bottom:1px solid var(--border);flex-shrink:0}
+
+/* ── Chat ── */
+.chat-wrap{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:3px;max-height:180px;min-height:80px}
+.chat-entry{font-size:11px;font-family:'JetBrains Mono',monospace;line-height:1.6;word-break:break-word}
+.chat-entry .who{color:var(--accent2);font-weight:700}
+.chat-entry .master{color:var(--accent);font-weight:700}
+.chat-entry .botname{color:var(--warn);font-weight:700}
+.chat-entry .msg{color:var(--muted)}
+.chat-entry .time{color:#2a3a30;font-size:9px;margin-right:4px}
+
+/* ── Reconnect log ── */
+.rlog-wrap{overflow-y:auto;display:flex;flex-direction:column;gap:3px;max-height:120px}
+.rlog-entry{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--muted);line-height:1.5}
+.rlog-entry.warn{color:var(--warn)}
+.rlog-entry.ok{color:var(--accent)}
+.rlog-entry.err{color:var(--danger)}
+.rlog-entry.info{color:var(--accent2)}
+
+/* ── Follow row ── */
+.follow-row{display:flex;gap:6px}
+.follow-row input{flex:1;background:var(--dim);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:7px 10px;font-size:12px;font-family:'Syne',sans-serif;outline:none;transition:border-color .15s}
+.follow-row input:focus{border-color:var(--accent)}
+.btn{border:none;border-radius:6px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Syne',sans-serif;letter-spacing:.5px;transition:opacity .15s}
+.btn:hover{opacity:.8}
+.btn-green{background:var(--accent);color:#000}
+.btn-red{background:transparent;border:1px solid var(--danger);color:var(--danger)}
+
+/* ── Commands ── */
+.cmd-wrap{display:flex;flex-wrap:wrap;gap:4px}
+.cmd{background:var(--dim);border:1px solid var(--border);border-radius:4px;padding:3px 7px;font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--muted)}
+
+/* ── Inventory ── */
+.inv-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:3px}
+.slot{background:var(--dim);border:1px solid var(--border);border-radius:4px;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden;cursor:default}
+.slot.filled{border-color:#1e3a2a}
+.slot .sname{font-size:7px;text-align:center;line-height:1.2;padding:0 2px;word-break:break-all;color:var(--text)}
+.slot .scount{font-size:8px;font-weight:700;color:var(--accent);position:absolute;bottom:1px;right:3px;font-family:'JetBrains Mono',monospace}
+.slot[title]:hover::after{content:attr(title);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#0a0f0c;border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--text);white-space:nowrap;z-index:10;pointer-events:none}
+
+/* ── Lifetime stats ── */
+.lstat-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)}
+.lstat-row:last-child{border-bottom:none}
+.lstat-row span:first-child{color:var(--muted)}
+.lstat-row span:last-child{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text)}
+
+/* ── Responsive ── */
+@media(max-width:700px){
+  .layout{grid-template-columns:1fr}
+  .sidebar{position:static;height:auto}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .bottom{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ══ SIDEBAR ══ -->
+  <div class="sidebar">
+    <div class="logo">ULTRA AI<small>BOT DASHBOARD v2</small></div>
+
+    <div class="section-sep">Tasks</div>
+    <div id="task-list"></div>
+
+    <div class="sidebar-footer">
+      <span class="ws-dot" id="ws-dot"></span>
+      <span id="ws-label">Connecting...</span>
+    </div>
+  </div>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main">
+
+    <!-- Status bar -->
+    <div class="statusbar">
+      <div class="pulse" id="pulse"></div>
+      <span class="status-label" id="status-label">OFFLINE</span>
+      <span class="status-server mono">muth.aternos.me:37604</span>
+      <span class="status-user mono" id="status-user">—</span>
+      <span class="status-pos mono" id="status-pos">x:— y:— z:—</span>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="stats-row">
+      <div class="stat">
+        <div class="stat-val" id="v-health">—</div>
+        <div class="stat-lbl">Health</div>
+        <div class="stat-bar"><div class="stat-bar-fill" id="b-health" style="width:0%"></div></div>
+      </div>
+      <div class="stat">
+        <div class="stat-val warn" id="v-food">—</div>
+        <div class="stat-lbl">Food</div>
+        <div class="stat-bar"><div class="stat-bar-fill warn" id="b-food" style="width:0%"></div></div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" id="v-xp">—</div>
+        <div class="stat-lbl">XP Level</div>
+        <div class="stat-bar"><div class="stat-bar-fill" id="b-xp" style="width:0%"></div></div>
+      </div>
+      <div class="stat">
+        <div class="stat-val" id="v-inv">—</div>
+        <div class="stat-lbl">Items</div>
+        <div class="stat-bar"><div class="stat-bar-fill" id="b-inv" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- Bottom panels -->
+    <div class="bottom">
+
+      <!-- LEFT: Chat + Follow + Commands -->
+      <div class="panel">
+        <div class="panel-title">Live Chat</div>
+        <div class="chat-wrap" id="chat-list"></div>
+        <div class="follow-row" style="margin-top:2px">
+          <input id="chat-input" type="text" placeholder="Send message as bot..." onkeydown="if(event.key==='Enter')sendChat()"/>
+          <button class="btn btn-green" onclick="sendChat()">Send</button>
+        </div>
+
+        <div class="panel-title">Follow &amp; Protect</div>
+        <div class="follow-row">
+          <input id="follow-input" type="text" placeholder="Player name..."/>
+          <button class="btn btn-green" onclick="doFollow()">Follow</button>
+          <button class="btn btn-red" onclick="doUnfollow()">Stop</button>
+        </div>
+
+        <div class="panel-title">Chat Commands (in-game)</div>
+        <div class="cmd-wrap">
+          <span class="cmd">!follow [player]</span><span class="cmd">!unfollow</span>
+          <span class="cmd">!come</span><span class="cmd">!stop</span>
+          <span class="cmd">!mine</span><span class="cmd">!farm</span>
+          <span class="cmd">!fish</span><span class="cmd">!combat</span>
+          <span class="cmd">!craft</span><span class="cmd">!inv</span>
+          <span class="cmd">!pos</span><span class="cmd">!help</span>
+        </div>
+
+        <div class="panel-title">Reconnect Log</div>
+        <div class="rlog-wrap" id="rlog-list"></div>
+      </div>
+
+      <!-- RIGHT: Inventory + Lifetime stats -->
+      <div class="panel">
+        <div class="panel-title">Inventory</div>
+        <div class="inv-grid" id="inv-grid"></div>
+
+        <div class="panel-title">Lifetime Stats</div>
+        <div>
+          <div class="lstat-row"><span>Mobs killed</span><span id="s-mobs">0</span></div>
+          <div class="lstat-row"><span>Blocks mined</span><span id="s-blocks">0</span></div>
+          <div class="lstat-row"><span>Items crafted</span><span id="s-crafted">0</span></div>
+          <div class="lstat-row"><span>Fish caught</span><span id="s-fish">0</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Task definitions ──
+const TASKS = [
+  {id:'roam',    icon:'🧭', label:'Roam'},
+  {id:'mining',  icon:'⛏️', label:'Mining'},
+  {id:'farming', icon:'🌾', label:'Farming'},
+  {id:'combat',  icon:'⚔️', label:'Combat'},
+  {id:'autoEat', icon:'🍖', label:'Auto Eat'},
+  {id:'autoArmor',icon:'🛡️',label:'Auto Armor'},
+  {id:'autoCraft',icon:'🔨',label:'Auto Craft'},
+  {id:'fishing', icon:'🎣', label:'Fishing'},
+  {id:'follow',  icon:'👣', label:'Follow'},
+]
+
+let state = {
+  status:'offline', currentUsername:'—',
+  position:{x:0,y:0,z:0}, health:0, food:0, xp:0,
+  tasks:{roam:false,mining:false,farming:false,combat:false,
+         autoEat:false,autoArmor:false,autoCraft:false,fishing:false,follow:false},
+  followTarget:null, inventory:[],
+  stats:{mobsKilled:0,blocksMined:0,itemsCrafted:0,fishCaught:0}
+}
+
+// ── Render task list ──
+function renderTasks() {
+  const el = document.getElementById('task-list')
+  el.innerHTML = ''
+  TASKS.forEach(t => {
+    const on = state.tasks[t.id]
+    const row = document.createElement('div')
+    row.className = 'task-row' + (on ? ' on' : '')
+    row.innerHTML = `<span class="task-icon">${t.icon}</span>
+      <span class="task-label">${t.label}</span>
+      <div class="tog${on?' on':''}"></div>`
+    row.onclick = () => {
+      const newVal = !state.tasks[t.id]
+      state.tasks[t.id] = newVal
+      // Send to bot via WebSocket
+      if (ws && ws.readyState === 1) ws.send(JSON.stringify({type:'task',task:t.id,value:newVal}))
+      // Also hit REST API as fallback
+      fetch('/task', {method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({task:t.id,value:newVal})}).catch(()=>{})
+      renderTasks()
+    }
+    el.appendChild(row)
+  })
+}
+
+// ── Render inventory ──
+function renderInventory() {
+  const grid = document.getElementById('inv-grid')
+  grid.innerHTML = ''
+  const slots = Array(27).fill(null)
+  state.inventory.forEach((item, i) => { if (i < 27) slots[i] = item })
+  slots.forEach(s => {
+    const el = document.createElement('div')
+    el.className = 'slot' + (s ? ' filled' : '')
+    if (s) {
+      const name = s.name.replace(/_/g,' ').replace('minecraft:','')
+      el.innerHTML = `<span class="sname">${name}</span><span class="scount">${s.count}</span>`
+      el.title = `${s.name} ×${s.count}`
+    }
+    grid.appendChild(el)
+  })
+}
+
+// ── Render full UI from state ──
+function render() {
+  // Status bar
+  const pulse = document.getElementById('pulse')
+  const label = document.getElementById('status-label')
+  pulse.className = 'pulse ' + state.status
+  label.className = 'status-label ' + state.status
+  label.textContent = state.status.replace(/_/g,' ').toUpperCase()
+  document.getElementById('status-user').textContent = state.currentUsername || '—'
+  const p = state.position
+  document.getElementById('status-pos').textContent =
+    `x:${p.x} y:${p.y} z:${p.z}`
+
+  // Health
+  const hp = Math.round((state.health / 20) * 100)
+  document.getElementById('v-health').textContent = state.health
+  const hb = document.getElementById('b-health')
+  hb.style.width = hp + '%'
+  hb.className = 'stat-bar-fill' + (state.health <= 6 ? ' danger' : state.health <= 12 ? ' warn' : '')
+  document.getElementById('v-health').className = 'stat-val' + (state.health <= 6 ? ' danger' : state.health <= 12 ? ' warn' : '')
+
+  // Food
+  const fp = Math.round((state.food / 20) * 100)
+  document.getElementById('v-food').textContent = state.food
+  document.getElementById('b-food').style.width = fp + '%'
+
+  // XP
+  const xp = Math.min(Math.round((state.xp / 30) * 100), 100)
+  document.getElementById('v-xp').textContent = state.xp
+  document.getElementById('b-xp').style.width = xp + '%'
+
+  // Inventory count
+  const ic = state.inventory.length
+  document.getElementById('v-inv').textContent = ic
+  document.getElementById('b-inv').style.width = Math.round((ic / 36) * 100) + '%'
+
+  // Lifetime stats
+  document.getElementById('s-mobs').textContent    = state.stats.mobsKilled
+  document.getElementById('s-blocks').textContent  = state.stats.blocksMined
+  document.getElementById('s-crafted').textContent = state.stats.itemsCrafted
+  document.getElementById('s-fish').textContent    = state.stats.fishCaught
+
+  renderTasks()
+  renderInventory()
+}
+
+// ── Chat ──
+function addChat(username, message) {
+  const list = document.getElementById('chat-list')
+  const el = document.createElement('div')
+  el.className = 'chat-entry'
+  const now = new Date()
+  const t = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0')
+  const botName = state.currentUsername || 'SomuUltraAI'
+  let cls = 'who'
+  if (username === botName) cls = 'botname'
+  else if (username === 'Somu') cls = 'master'
+  el.innerHTML = `<span class="time">${t}</span><span class="${cls}">${username}</span> <span class="msg">${message}</span>`
+  list.prepend(el)
+  while (list.children.length > 60) list.removeChild(list.lastChild)
+}
+
+// ── Reconnect log ──
+function addRlog(msg) {
+  const list = document.getElementById('rlog-list')
+  const el = document.createElement('div')
+  const lower = msg.toLowerCase()
+  el.className = 'rlog-entry' + (
+    lower.includes('✅') || lower.includes('joined') ? ' ok' :
+    lower.includes('⚠️') || lower.includes('switching') || lower.includes('waiting') ? ' warn' :
+    lower.includes('❌') || lower.includes('unreachable') || lower.includes('fail') ? ' err' :
+    lower.includes('🔄') || lower.includes('attempt') || lower.includes('creating') ? ' info' : ''
+  )
+  el.textContent = msg
+  list.prepend(el)
+  while (list.children.length > 40) list.removeChild(list.lastChild)
+}
+
+// ── Follow controls ──
+function sendChat() {
+  const input = document.getElementById('chat-input')
+  const msg = input.value.trim()
+  if (!msg) return
+  fetch('/chat', {method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({message:msg})}).catch(()=>{})
+  input.value = ''
+}
+
+function doFollow() {
+  const name = document.getElementById('follow-input').value.trim()
+  if (!name) return
+  fetch('/follow', {method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({player:name})}).catch(()=>{})
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({type:'follow',player:name}))
+}
+function doUnfollow() {
+  fetch('/follow', {method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({player:null})}).catch(()=>{})
+  if (ws && ws.readyState === 1) ws.send(JSON.stringify({type:'follow',player:null}))
+}
+
+// ── WebSocket ──
+let ws, wsRetry = 1000
+function connectWS() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:'
+  ws = new WebSocket(proto + '//' + location.host)
+
+  ws.onopen = () => {
+    wsRetry = 1000
+    document.getElementById('ws-dot').className = 'ws-dot live'
+    document.getElementById('ws-label').textContent = 'Live'
+  }
+
+  ws.onmessage = e => {
+    try {
+      const msg = JSON.parse(e.data)
+      if (msg.type === 'state') {
+        Object.assign(state, msg.data)
+        render()
+      } else if (msg.type === 'chat') {
+        addChat(msg.data.username, msg.data.message)
+      } else if (msg.type === 'reconnect_log') {
+        addRlog(msg.data.msg)
+      }
+    } catch (ex) {}
+  }
+
+  ws.onclose = () => {
+    document.getElementById('ws-dot').className = 'ws-dot'
+    const secs = Math.round(wsRetry / 1000)
+    document.getElementById('ws-label').textContent = 'Retrying in ' + secs + 's...'
+    setTimeout(connectWS, wsRetry)
+    wsRetry = Math.min(wsRetry * 1.5, 30000)
+  }
+
+  ws.onerror = () => ws.close()
+}
+
+connectWS()
+render()
+</script>
+</body>
+</html>

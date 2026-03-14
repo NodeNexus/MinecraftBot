@@ -1,22 +1,23 @@
 {
-  "name": "somu-ultra-ai-bot",
-  "version": "1.0.0",
-  "description": "Autonomous survival AI minecraft bot with farming mining building",
+  "name": "ultra-ai-bot",
+  "version": "2.0.0",
+  "description": "Mineflayer bot with web dashboard",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
   },
-  "engines": {
-    "node": ">=18 <=20"
-  },
   "dependencies": {
-    "express": "^4.18.2",
-    "mineflayer": "^4.14.0",
+    "mineflayer": "^4.35.0",
     "mineflayer-pathfinder": "^2.4.5",
     "mineflayer-collectblock": "^1.6.0",
-    "mineflayer-tool": "^1.0.1",
+    "mineflayer-tool": "^1.2.0",
     "mineflayer-pvp": "^1.3.2",
-    "mineflayer-armor-manager": "^1.4.0",
-    "vec3": "^0.1.7"
+    "minecraft-data": "^3.68.0",
+    "vec3": "^0.1.10",
+    "express": "^4.19.2",
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
